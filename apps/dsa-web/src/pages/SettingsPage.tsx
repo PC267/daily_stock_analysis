@@ -79,6 +79,7 @@ const SettingsPage: React.FC = () => {
     'LLM_CHANNELS',
     'LLM_TEMPERATURE',
     'LITELLM_MODEL',
+    'AGENT_LITELLM_MODEL',
     'LITELLM_FALLBACK_MODELS',
     'AIHUBMIX_KEY',
     'DEEPSEEK_API_KEY',
@@ -134,6 +135,7 @@ const SettingsPage: React.FC = () => {
             <Button
               type="button"
               variant="settings-secondary"
+              className="border-border/50 bg-muted/30 hover:border-border/70"
               onClick={resetDraft}
               disabled={isLoading || isSaving}
             >
@@ -240,7 +242,7 @@ const SettingsPage: React.FC = () => {
                 ))}
               </SettingsSectionCard>
             ) : (
-              <div className="rounded-[1.5rem] border border-border/45 bg-card/92 p-5 text-sm text-secondary-text shadow-soft-card">
+              <div className="settings-panel-muted rounded-[1.5rem] border p-5 text-sm text-secondary-text shadow-soft-card">
                 当前分类下暂无配置项。
               </div>
             )}
