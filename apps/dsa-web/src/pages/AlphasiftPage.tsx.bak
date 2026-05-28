@@ -1,0 +1,392 @@
+import { useState, useEffect, useCallback } from 'react';
+import { Filter, BarChart3, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { alphasiftApi } from '../api/alphasift';
+import type { ScreenRun } from '../api/alphasift';
+import { analysisApi } from '../api/analysis';
+import { ApiErrorAlert, Button, Card, Loading, EmptyState } from '../components/common';
+import type { ParsedApiError } from '../api/error';
+import { getParsedApiError } from '../api/error';
+import { cn } from '../utils/cn';
+
+const STRATEGIES = [
+  { key: 'dual_low', label: '双低策略', desc: '低估值 + 低波动' },
+  { key: 'balanced_alpha', label: '均衡阿尔法', desc: '多因子均衡' },
+  { key: 'momentum_quality', label: '动量质量', desc: '趋势 + 基本面' },
+  { key: 'volume_breakout', label: '放量突破', desc: '量价配合' },
+  { key: 'oversold_reversal', label: '超卖反弹', desc: '均值回归' },
+  { key: 'shrink_pullback', label: '缩量回踩', desc: '蓄力型' },
+  { key: 'capital_heat', label: '资金热度', desc: '板块资金流' },
+  { key: 'quality_value', label: '优质价值', desc: '基本面优选' },
+];
+
+interface PickItem {
+  rank: number;
+  code: string;
+  name: string;
+  final_score: number;
+  screen_score: number;
+  change_pct: number;
+  price: number;
+  industry: string;
+  concepts: string;
+}
+
+const DSA_API_URL = (window as unknown as { DSA_API_URL?: string }).DSA_API_URL || 'http://localhost:8000';
+
+export default function AlphasiftPage() {
+  const navigate = useNavigate();
+  const [selectedStrategy, setSelectedStrategy] = useState('dual_low');
+  const [useLlM, setUseLlM] = useState(false);
+  const [maxOutput, setMaxOutput] = useState(10);
+  const [llmContext, setLlmContext] = useState('');
+  const [deepAnalysis, setDeepAnalysis] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<ParsedApiError | null>(null);
+  const [picks, setPicks] = useState<PickItem[]>([]);
+  const [hasRun, setHasRun] = useState(false);
+  const [activeTab, setActiveTab] = useState<'screen' | 'history'>('screen');
+  const [runs, setRuns] = useState<ScreenRun[]>([]);
+  const [loadingRuns, setLoadingRuns] = useState(false);
+
+  useEffect(() => {
+    document.title = '选股 - DSA';
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'history') {
+      setLoadingRuns(true);
+      alphasiftApi.listRuns()
+        .then(res => setRuns(res.runs))
+        .catch(() => setRuns([]))
+        .finally(() => setLoadingRuns(false));
+    }
+  }, [activeTab]);
+
+  const handleScreen = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    setPicks([]);
+    setHasRun(false);
+
+    try {
+      const result = await alphasiftApi.screen({
+        strategy: selectedStrategy,
+        market: 'cn',
+        max_output: maxOutput,
+        use_llm: useLlM,
+        llm_context: llmContext || undefined,
+        deep_analysis: deepAnalysis,
+      });
+
+      setPicks(result.picks);
+      setHasRun(true);
+    } catch (err) {
+      setError(getParsedApiError(err));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedStrategy, maxOutput, useLlM, llmContext, deepAnalysis]);
+
+  const handleGoToDSA = useCallback((code: string, name: string) => {
+    navigate(`/chat?code=${encodeURIComponent(code)}&name=${encodeURIComponent(name)}`);
+  }, [navigate]);
+
+  const handleAnalyze = useCallback(async (code: string, name: string) => {
+    try {
+      await analysisApi.analyze({
+        stockCode: code,
+        stockName: name,
+        selectionSource: 'alphasift',
+        asyncMode: false,
+      });
+      navigate(`/chat?code=${encodeURIComponent(code)}&name=${encodeURIComponent(name)}`);
+    } catch (err) {
+      setError(getParsedApiError(err));
+    }
+  }, [navigate]);
+
+  const scoreColor = (score: number) => {
+    if (score >= 75) return 'text-emerald-400';
+    if (score >= 60) return 'text-cyan';
+    if (score >= 50) return 'text-yellow-400';
+    return 'text-orange-400';
+  };
+
+  const changeColor = (pct: number) => {
+    if (pct > 0) return 'text-red-400';
+    if (pct < 0) return 'text-emerald-400';
+    return 'text-secondary-text';
+  };
+
+  return (
+    <div className="flex min-h-full flex-col gap-4 p-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-gradient shadow-[0_12px_28px_var(--nav-brand-shadow)]">
+          <Filter className="h-5 w-5 text-primary-foreground" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Alphasift 选股</h1>
+          <p className="text-sm text-secondary-text">全市场策略筛选 · AI 智能排序</p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-border/50">
+        <button
+          onClick={() => setActiveTab('screen')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'screen'
+              ? 'border-cyan text-cyan'
+              : 'border-transparent text-secondary-text hover:text-foreground'
+          }`}
+        >
+          筛选
+        </button>
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'history'
+              ? 'border-cyan text-cyan'
+              : 'border-transparent text-secondary-text hover:text-foreground'
+          }`}
+        >
+          历史记录
+        </button>
+      </div>
+
+      {/* History Tab */}
+      {activeTab === 'history' && (
+        loadingRuns ? (
+          <Loading label="加载历史记录..." />
+        ) : runs.length === 0 ? (
+          <EmptyState title="暂无历史记录" description="筛选后会在这里显示历史记录" />
+        ) : (
+          <div className="space-y-2">
+            {runs.map((run) => (
+              <Card key={run.run_id} padding="sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-foreground">{run.strategy}</span>
+                      <span className="text-xs text-secondary-text">{run.market}</span>
+                    </div>
+                    <div className="text-xs text-secondary-text mt-0.5">
+                      {run.created_at} · {run.picks} 只股票
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedStrategy(run.strategy);
+                      setActiveTab('screen');
+                    }}
+                    className="flex h-7 items-center gap-1 rounded-lg bg-cyan/10 px-2 text-xs text-cyan hover:bg-cyan/20"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    重新筛选
+                  </button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )
+      )}
+
+      {/* Screen Tab */}
+      {activeTab === 'screen' && (
+        <>
+          {/* Strategy Selection */}
+          <Card title="选择策略" subtitle="STRATEGY">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {STRATEGIES.map((s) => (
+                <button
+                  key={s.key}
+                  onClick={() => setSelectedStrategy(s.key)}
+                  className={cn(
+                    'flex flex-col items-start rounded-xl border p-3 text-left transition-all',
+                    selectedStrategy === s.key
+                      ? 'border-cyan/50 bg-cyan/10 text-cyan'
+                      : 'border-border/50 bg-card text-secondary-text hover:border-border hover:bg-hover'
+                  )}
+                >
+                  <span className="font-medium">{s.label}</span>
+                  <span className="mt-0.5 text-xs opacity-70">{s.desc}</span>
+                </button>
+              ))}
+            </div>
+          </Card>
+
+          {/* Options */}
+          <Card title="筛选选项" subtitle="OPTIONS">
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={useLlM}
+                  onChange={(e) => setUseLlM(e.target.checked)}
+                  className="h-4 w-4 rounded border-border accent-cyan"
+                />
+                <span className="text-sm">LLM 排序</span>
+              </label>
+
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={deepAnalysis}
+                  onChange={(e) => setDeepAnalysis(e.target.checked)}
+                  className="h-4 w-4 rounded border-border accent-cyan"
+                />
+                <span className="text-sm">DSA 深度分析</span>
+              </label>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-secondary-text">输出数量:</label>
+                <select
+                  value={maxOutput}
+                  onChange={(e) => setMaxOutput(Number(e.target.value))}
+                  className="h-9 rounded-xl border border-border/70 bg-card px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan/30"
+                >
+                  {[5, 10, 15, 20, 30].map((v) => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-secondary-text">市场上下文:</label>
+                <input
+                  type="text"
+                  value={llmContext}
+                  onChange={(e) => setLlmContext(e.target.value)}
+                  placeholder="可选，如：券商板块今日放量"
+                  className="h-9 rounded-xl border border-border/70 bg-card px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan/30 w-64"
+                />
+              </div>
+            </div>
+          </Card>
+
+          {/* Run Button */}
+          <div className="flex items-center gap-3">
+            <Button
+              variant="gradient"
+              size="lg"
+              onClick={handleScreen}
+              isLoading={isLoading}
+              loadingText="筛选中..."
+            >
+              <Filter className="h-4 w-4" />
+              开始筛选
+            </Button>
+            {hasRun && picks.length > 0 && (
+              <span className="text-sm text-secondary-text">
+                筛选出 <span className="text-cyan font-medium">{picks.length}</span> 只股票
+              </span>
+            )}
+          </div>
+
+          {/* Error */}
+          {error && (
+            <ApiErrorAlert error={error} />
+          )}
+
+          {/* Loading */}
+          {isLoading && <Loading label="正在从全市场筛选候选股票..." />}
+
+          {/* Empty */}
+          {!isLoading && hasRun && picks.length === 0 && (
+            <EmptyState
+              title="无符合条件股票"
+              description="当前策略未筛选出符合条件的股票，请尝试调整策略或参数"
+            />
+          )}
+
+          {/* Results */}
+          {!isLoading && picks.length > 0 && (
+            <Card title={`筛选结果 (${picks.length})`} subtitle="RESULTS">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border/50 text-left text-xs text-secondary-text">
+                      <th className="pb-2 pr-3 font-medium">排名</th>
+                      <th className="pb-2 pr-3 font-medium">代码</th>
+                      <th className="pb-2 pr-3 font-medium">名称</th>
+                      <th className="pb-2 pr-3 font-medium">综合评分</th>
+                      <th className="pb-2 pr-3 font-medium">筛选分数</th>
+                      <th className="pb-2 pr-3 font-medium">涨跌幅</th>
+                      <th className="pb-2 pr-3 font-medium">行业</th>
+                      <th className="pb-2 pr-3 font-medium">概念</th>
+                      <th className="pb-2 font-medium">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {picks.map((pick) => (
+                      <tr
+                        key={pick.code}
+                        className="border-b border-border/30 hover:bg-hover/50 transition-colors"
+                      >
+                        <td className="py-2.5 pr-3">
+                          <span className={cn(
+                            'flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold',
+                            pick.rank === 1 ? 'bg-yellow-400/20 text-yellow-400' :
+                            pick.rank === 2 ? 'bg-slate-400/20 text-slate-300' :
+                            pick.rank === 3 ? 'bg-orange-400/20 text-orange-400' :
+                            'bg-cyan/10 text-cyan'
+                          )}>
+                            {pick.rank}
+                          </span>
+                        </td>
+                        <td className="py-2.5 pr-3 font-mono text-cyan">{pick.code}</td>
+                        <td className="py-2.5 pr-3 font-medium text-foreground">{pick.name}</td>
+                        <td className={cn('py-2.5 pr-3 font-bold', scoreColor(pick.final_score))}>
+                          {pick.final_score.toFixed(1)}
+                        </td>
+                        <td className="py-2.5 pr-3 text-secondary-text">{pick.screen_score.toFixed(1)}</td>
+                        <td className={cn('py-2.5 pr-3 font-medium', changeColor(pick.change_pct))}>
+                          {pick.change_pct > 0 ? '+' : ''}{pick.change_pct.toFixed(2)}%
+                        </td>
+                        <td className="py-2.5 pr-3 text-secondary-text text-xs max-w-[100px] truncate">{pick.industry || '-'}</td>
+                        <td className="py-2.5 pr-3 text-secondary-text text-xs max-w-[150px] truncate">{pick.concepts || '-'}</td>
+                        <td className="py-2.5">
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleGoToDSA(pick.code, pick.name)}
+                              className="flex h-7 items-center gap-1 rounded-lg bg-cyan/10 px-2 text-xs text-cyan hover:bg-cyan/20 transition-colors"
+                              title="跳转 DSA 问股"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              问股
+                            </button>
+                            <button
+                              onClick={() => handleAnalyze(pick.code, pick.name)}
+                              className="flex h-7 items-center gap-1 rounded-lg bg-emerald-500/10 px-2 text-xs text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                              title="深度分析"
+                            >
+                              <BarChart3 className="h-3 w-3" />
+                              分析
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
+          {/* Info */}
+          <Card variant="bordered" padding="sm">
+            <div className="text-xs text-secondary-text">
+              <p className="font-medium text-foreground mb-1">Alphasift 选股说明</p>
+              <p>L1 筛选 → L2 LLM 排序 → L3 DSA 深度分析（可选）</p>
+              <p className="mt-1">
+                DSA_API_URL: <span className="font-mono text-cyan/70">{DSA_API_URL}</span>
+              </p>
+            </div>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}

@@ -3,7 +3,7 @@
 # ===================================
 # 多阶段构建：前端打包 + 后端运行
 
-FROM node:20-slim AS web-builder
+FROM node:22-slim AS web-builder
 
 WORKDIR /app/apps/dsa-web
 
@@ -52,6 +52,7 @@ COPY data_provider/ ./data_provider/
 COPY bot/ ./bot/
 COPY src/ ./src/
 COPY strategies/ ./strategies/
+COPY alphasift_pkg/ ./alphasift_pkg/
 COPY --from=web-builder /app/static ./static/
 COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
@@ -66,17 +67,17 @@ ENV LOG_DIR=/app/logs
 ENV DATABASE_PATH=/app/data/stock_analysis.db
 # Web/API service
 ENV WEBUI_HOST=0.0.0.0
-ENV API_PORT=8000
+ENV API_PORT=811
 
 # 暴露 API 端口
-EXPOSE 8000
+EXPOSE 8811
 
 # 数据卷（持久化数据）
 VOLUME ["/app/data", "/app/logs", "/app/reports"]
 
 # 健康检查（FastAPI 模式）
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/api/health || curl -f http://localhost:8000/health \
+    CMD curl -f http://localhost:8811/api/health || curl -f http://localhost:8811/health \
     || python -c "import sys; sys.exit(0)"
 
 # 启动入口先修复 bind mount 目录权限，再降权为 dsa 执行应用；

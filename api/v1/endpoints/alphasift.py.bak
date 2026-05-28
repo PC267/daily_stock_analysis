@@ -1,0 +1,189 @@
+# -*- coding: utf-8 -*-
+"""
+Alphasift 自动选股 API endpoints.
+"""
+
+import logging
+import uuid
+from typing import Optional, List
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+
+
+class AlphasiftScreenRequest(BaseModel):
+    strategy: str = Field(..., description="策略名称，如 dual_low, balanced_alpha 等")
+    market: str = Field(default="cn", description="市场，cn/港/美")
+    max_output: Optional[int] = Field(default=None, description="最大输出数量")
+    use_llm: bool = Field(default=False, description="是否使用 LLM 排序")
+    llm_context: Optional[str] = Field(default=None, description="传给 LLM 的市场上下文")
+    post_analyzers: Optional[str] = Field(default=None, description="后分析器，逗号分隔，如 dsa,scorecard")
+    collect_llm_candidate_context: bool = Field(default=False, description="是否收集候选上下文")
+    deep_analysis: bool = Field(default=False, description="是否深度分析")
+
+
+class PickItem(BaseModel):
+    rank: int
+    code: str
+    name: str
+    final_score: float
+    screen_score: float
+    change_pct: float
+    price: float
+    industry: str
+    concepts: str
+
+
+class AlphasiftScreenResponse(BaseModel):
+    task_id: str
+    strategy: str
+    message: str
+    count: int = 0
+    picks: List[PickItem] = []
+
+
+def _import_alphasift():
+    """Import alphasift from alphasift_pkg.alphasift"""
+    import sys
+    sys.path.insert(0, "/app")
+    # Try alphasift_pkg first (installed), then fallback to direct alphasift
+    try:
+        from alphasift_pkg.alphasift.pipeline import screen
+        return screen
+    except ImportError:
+        try:
+            from alphasift.pipeline import screen
+            return screen
+        except ImportError as e:
+            raise ImportError(f"Cannot find alphasift module: {e}")
+
+
+def _import_list_strategies():
+    """Import list_strategies from alphasift_pkg.alphasift"""
+    import sys
+    sys.path.insert(0, "/app")
+    try:
+        from alphasift_pkg.alphasift.strategy import list_strategies
+        return list_strategies
+    except ImportError:
+        try:
+            from alphasift.strategy import list_strategies
+            return list_strategies
+        except ImportError as e:
+            raise ImportError(f"Cannot find alphasift.strategy: {e}")
+
+
+@router.post("/screen", response_model=AlphasiftScreenResponse)
+async def screen_stocks(req: AlphasiftScreenRequest):
+    task_id = str(uuid.uuid4())
+
+    try:
+        screen = _import_alphasift()
+    except ImportError as e:
+        logger.error(f"Failed to import alphasift: {e}")
+        raise HTTPException(status_code=500, detail=f"Alphasift 模块导入失败: {e}")
+
+    screen_kwargs = {
+        "strategy": req.strategy,
+        "market": req.market,
+        "use_llm": req.use_llm,
+    }
+
+    if req.max_output:
+        screen_kwargs["max_output"] = req.max_output
+    if req.llm_context:
+        screen_kwargs["llm_context"] = req.llm_context
+    if req.post_analyzers:
+        screen_kwargs["post_analyzers"] = req.post_analyzers.split(",")
+    if req.collect_llm_candidate_context:
+        screen_kwargs["collect_llm_candidate_context"] = True
+    if req.deep_analysis:
+        screen_kwargs["deep_analysis"] = True
+
+    try:
+        logger.info(f"[Alphasift screen] task_id={task_id}, args={screen_kwargs}")
+        result = screen(**screen_kwargs)
+
+        # Auto-save run result
+        try:
+            _, save_fn = _import_store()
+            save_fn(result, data_dir=_get_data_dir())
+            logger.info(f"[Alphasift screen] result saved to {_get_data_dir() / 'runs'}")
+        except Exception as save_err:
+            logger.warning(f"[Alphasift screen] failed to save result: {save_err}")
+
+        picks = []
+        if result and result.picks:
+            for p in result.picks:
+                picks.append(PickItem(
+                    rank=p.rank,
+                    code=p.code,
+                    name=p.name,
+                    final_score=p.final_score,
+                    screen_score=p.screen_score,
+                    change_pct=p.change_pct,
+                    price=p.price,
+                    industry=p.industry,
+                    concepts=p.concepts,
+                ))
+
+        return AlphasiftScreenResponse(
+            task_id=task_id,
+            strategy=req.strategy,
+            message=f"筛选完成，共 {len(picks)} 只股票" if picks else "筛选完成，无符合条件股票",
+            count=len(picks),
+            picks=picks,
+        )
+    except Exception as e:
+        logger.error(f"Alphasift screen error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/strategies")
+async def list_strategies():
+    try:
+        fn = _import_list_strategies()
+        strategies = fn()
+        return {"strategies": strategies}
+    except Exception as e:
+        logger.error(f"Failed to list strategies: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _import_store():
+    """Import store helpers from alphasift_pkg"""
+    import sys
+    sys.path.insert(0, "/app")
+    try:
+        from alphasift_pkg.alphasift.store import list_saved_runs, save_screen_result
+        return list_saved_runs, save_screen_result
+    except ImportError:
+        from alphasift.store import list_saved_runs, save_screen_result
+        return list_saved_runs, save_screen_result
+
+
+def _get_data_dir():
+    """Get ALPHASIFT_DATA_DIR, fallback to /app/data"""
+    import os
+    from pathlib import Path
+    d = os.getenv("ALPHASIFT_DATA_DIR", "/app/data")
+    p = Path(d)
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
+@router.get("/runs")
+async def list_runs():
+    """List saved screen runs"""
+    try:
+        store_fn = _import_store()
+        list_fn = store_fn[0] if isinstance(store_fn, tuple) else store_fn
+        runs = list_fn(data_dir=_get_data_dir())
+        return {"runs": runs, "count": len(runs)}
+    except Exception as e:
+        logger.error(f"Failed to list runs: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

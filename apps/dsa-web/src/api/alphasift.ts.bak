@@ -1,0 +1,86 @@
+import axios from 'axios';
+import { toCamelCase } from './utils';
+
+export interface AlphasiftScreenRequest {
+  strategy: string;
+  market?: string;
+  max_output?: number;
+  use_llm?: boolean;
+  llm_context?: string;
+  post_analyzers?: string;
+  collect_llm_candidate_context?: boolean;
+  deep_analysis?: boolean;
+}
+
+export interface PickItem {
+  rank: number;
+  code: string;
+  name: string;
+  final_score: number;
+  screen_score: number;
+  change_pct: number;
+  price: number;
+  industry: string;
+  concepts: string;
+}
+
+export interface AlphasiftScreenResponse {
+  task_id: string;
+  strategy: string;
+  message: string;
+  count: number;
+  picks: PickItem[];
+}
+
+export interface StrategiesResponse {
+  strategies: string[];
+}
+
+export interface ScreenRun {
+  run_id: string;
+  strategy: string;
+  market: string;
+  created_at: string;
+  picks: number;
+  path: string;
+}
+
+export interface RunsResponse {
+  runs: ScreenRun[];
+  count: number;
+}
+
+const alphasiftClient = axios.create({ baseURL: '/', timeout: 300000 });
+
+export const alphasiftApi = {
+  screen: async (data: AlphasiftScreenRequest): Promise<AlphasiftScreenResponse> => {
+    const response = await alphasiftClient.post<Record<string, unknown>>(
+      '/api/v1/alphasift/screen',
+      {
+        strategy: data.strategy,
+        market: data.market || 'cn',
+        max_output: data.max_output,
+        use_llm: data.use_llm ?? false,
+        llm_context: data.llm_context,
+        post_analyzers: data.post_analyzers,
+        collect_llm_candidate_context: data.collect_llm_candidate_context,
+        deep_analysis: data.deep_analysis,
+      }
+    );
+    return toCamelCase<AlphasiftScreenResponse>(response.data);
+  },
+
+  listStrategies: async (): Promise<StrategiesResponse> => {
+    const response = await alphasiftClient.get<Record<string, unknown>>(
+      '/api/v1/alphasift/strategies'
+    );
+    return toCamelCase<StrategiesResponse>(response.data);
+  },
+
+  listRuns: async (): Promise<RunsResponse> => {
+    const response = await alphasiftClient.get<Record<string, unknown>>(
+      '/api/v1/alphasift/runs'
+    );
+    return toCamelCase<RunsResponse>(response.data);
+  },
+};

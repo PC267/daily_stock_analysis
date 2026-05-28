@@ -55,7 +55,6 @@ from src.webui_frontend import prepare_webui_frontend_assets
 from src.config import get_config, Config
 from src.logging_config import setup_logging
 
-
 logger = logging.getLogger(__name__)
 _RUNTIME_ENV_FILE_KEYS = set()
 

@@ -8,7 +8,6 @@
 #   同时启动: docker-compose -f ./docker/docker-compose.yml up -d analyzer server
 
 name: daily-stock-analysis
-version: '3.8'
 
 x-common: &common
   build:
@@ -34,6 +33,12 @@ x-common: &common
 
     # Web/API service bind address (must be 0.0.0.0 inside container)
     - WEBUI_HOST=0.0.0.0
+    # Alphasift 选股策略目录
+    - STRATEGIES_DIR=/app/alphasift_pkg/alphasift/strategies
+    # Alphasift 数据目录（持久化到挂载卷 /app/data）
+    - ALPHASIFT_DATA_DIR=/app/data
+    # Alphasift ↔ DSA 互调用 API URL
+    - DSA_API_URL=http://localhost:8811
     # API_PORT 从 .env 文件读取，无需在此硬编码
 
     # 代理设置（如果需要）
@@ -65,4 +70,4 @@ services:
     command: ["python", "main.py", "--serve-only", "--host", "0.0.0.0", "--port", "${API_PORT:-8000}"]
     # 若使用 network_mode: host，则以下 ports 映射无效，端口由 command 中的 --port 指定
     ports:
-      - "${API_PORT:-8000}:${API_PORT:-8000}"
+      - "8811:8811"
