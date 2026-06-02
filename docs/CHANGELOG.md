@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - [新功能] 侧边栏分组行左侧新增单股删除按钮，hover 时红色高亮，点击确认后可批量删除该股票所有历史分析记录。
 - [改进] `docker/docker-compose.yml` 取消注释 `../static:/app/static:ro` 挂载，本地 `npm run build` 后前端变更即时生效，无需重建 Docker 镜像。
 - [修复] 修复 `apps/dsa-web/src/App.tsx` 和 `apps/dsa-web/src/components/layout/SidebarNav.tsx` 中残留的 Git 合并冲突标记，并补齐缺失的 `AlphasiftPage` 懒加载导入。
+- [新功能] `SCHEDULE_TIME` 支持逗号分隔的多个执行时间段（如 `09:00,14:00,20:00`），调度器会为每个时间点注册独立 daily job；`src/core/config_registry.py` 校验规则同步更新。前端设置页输入类型从 `time` 改为 `text` 以支持多时间输入。
 - [测试] 收敛 #1391 Phase 3 后端/API 与 Web 回归检查：`./scripts/ci_gate.sh`、`test_pipeline_market_phase_context.py`、`test_analysis_api_contract.py`、`test_analysis_history.py`、`npm run lint`、`npm run build`。
 - [新功能] 新增 AnalysisContextPack P1 内部契约与脱敏序列化测试。
 - [新功能] 新增 AnalysisContextPack P2 builder，从普通分析 pipeline 已有 artifacts 组装内部上下文包。

@@ -72,7 +72,7 @@ class Scheduler:
         初始化调度器
 
         Args:
-            schedule_time: 每日执行时间，格式 "HH:MM"
+            schedule_time: 每日执行时间，格式 "HH:MM" 或用逗号分隔多个时间 "09:00,14:00,20:00"
         """
         try:
             import schedule
@@ -85,9 +85,23 @@ class Scheduler:
         self._schedule_time_provider = schedule_time_provider
         self.shutdown_handler = GracefulShutdown()
         self._task_callback: Optional[Callable] = None
-        self._daily_job: Optional[Any] = None
+        self._daily_jobs: List[Any] = []
         self._background_tasks: List[Dict[str, Any]] = []
         self._running = False
+
+    @staticmethod
+    def _parse_schedule_times(raw: str) -> List[str]:
+        """Parse comma-separated schedule times into a list of validated HH:MM strings."""
+        if not raw or not raw.strip():
+            return []
+        parts = [t.strip() for t in raw.split(",") if t.strip()]
+        validated = []
+        for part in parts:
+            if re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", part):
+                validated.append(part)
+            else:
+                logger.warning("忽略无效的定时执行时间: %r", part)
+        return validated
 
     def set_daily_task(self, task: Callable, run_immediately: bool = True):
         """
@@ -98,52 +112,52 @@ class Scheduler:
             run_immediately: 是否在设置后立即执行一次
         """
         self._task_callback = task
-        if not self._configure_daily_task(self.schedule_time):
-            raise ValueError(f"无效的定时执行时间: {self.schedule_time!r}")
+        if not self._configure_daily_tasks(self.schedule_time):
+            raise ValueError(f"没有有效的定时执行时间: {self.schedule_time!r}")
 
         if run_immediately:
             logger.info("立即执行一次任务...")
             self._safe_run_task()
 
-    @staticmethod
-    def _is_valid_schedule_time(schedule_time: str) -> bool:
-        """Validate time string in HH:MM 24-hour format."""
-        candidate = (schedule_time or "").strip()
-        if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", candidate):
-            return False
-        return True
-
-    def _cancel_daily_job(self) -> None:
-        """Remove the currently registered daily job if one exists."""
-        if self._daily_job is None:
+    def _cancel_daily_jobs(self) -> None:
+        """Remove all currently registered daily jobs."""
+        if not self._daily_jobs:
             return
 
         if hasattr(self.schedule, "cancel_job"):
-            self.schedule.cancel_job(self._daily_job)
+            for job in self._daily_jobs:
+                try:
+                    self.schedule.cancel_job(job)
+                except (ValueError, LookupError):
+                    pass
         else:  # pragma: no cover - compatibility fallback
             jobs = getattr(self.schedule, "jobs", None)
-            if isinstance(jobs, list) and self._daily_job in jobs:
-                jobs.remove(self._daily_job)
+            if isinstance(jobs, list):
+                for job in self._daily_jobs:
+                    if job in jobs:
+                        jobs.remove(job)
 
-        self._daily_job = None
+        self._daily_jobs = []
 
-    def _configure_daily_task(self, schedule_time: str) -> bool:
-        """(Re)register the daily job at the requested time."""
-        candidate = (schedule_time or "").strip()
-        if not self._is_valid_schedule_time(candidate):
+    def _configure_daily_tasks(self, schedule_time: str) -> bool:
+        """(Re)register daily jobs at the requested time(s)."""
+        times = self._parse_schedule_times(schedule_time)
+        if not times:
             logger.warning(
-                "检测到无效的定时执行时间 %r，继续沿用当前时间 %s",
+                "没有有效的定时执行时间（输入: %r），继续沿用当前时间 %s",
                 schedule_time,
                 self.schedule_time,
             )
             return False
 
         previous_time = self.schedule_time
-        self._cancel_daily_job()
-        self._daily_job = self.schedule.every().day.at(candidate).do(self._safe_run_task)
-        self.schedule_time = candidate
+        self._cancel_daily_jobs()
+        for t in times:
+            job = self.schedule.every().day.at(t).do(self._safe_run_task)
+            self._daily_jobs.append(job)
+        self.schedule_time = ",".join(times)
 
-        if previous_time == candidate:
+        if previous_time == self.schedule_time:
             logger.info("已设置每日定时任务，执行时间: %s", self.schedule_time)
         else:
             logger.info(
@@ -167,7 +181,7 @@ class Scheduler:
         if not latest_schedule_time or latest_schedule_time == self.schedule_time:
             return
 
-        if self._configure_daily_task(latest_schedule_time):
+        if self._configure_daily_tasks(latest_schedule_time):
             logger.info("更新后的下次执行时间: %s", self._get_next_run_time())
 
     def _safe_run_task(self):
@@ -293,8 +307,8 @@ class Scheduler:
         logger.info("调度器已停止")
 
     def _get_next_run_time(self) -> str:
-        """获取下次执行时间"""
-        jobs = self.schedule.get_jobs()
+        """获取最近的下次执行时间"""
+        jobs = [j for j in self.schedule.get_jobs() if j.next_run is not None]
         if jobs:
             next_run = min(job.next_run for job in jobs)
             return next_run.strftime('%Y-%m-%d %H:%M:%S')
