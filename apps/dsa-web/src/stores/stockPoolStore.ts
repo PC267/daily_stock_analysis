@@ -24,11 +24,14 @@ type SubmitAnalysisOptions = {
   selectionSource?: SelectionSource;
   notify?: boolean;
   forceRefresh?: boolean;
+  skills?: string[];
 };
 
 let reportRequestSeq = 0;
 let analyzeRequestSeq = 0;
 let historyRequestSeq = 0;
+let activeTaskRequestSeq = 0;
+let activeTaskLocalRevision = 0;
 const dismissedTaskIds = new Set<string>();
 
 export interface StockPoolState {
@@ -40,6 +43,8 @@ export interface StockPoolState {
   error: ParsedApiError | null;
   isAnalyzing: boolean;
   historyItems: HistoryItem[];
+  stockHistoryItems: HistoryItem[];
+  isLoadingStockHistory: boolean;
   selectedHistoryIds: number[];
   isDeletingHistory: boolean;
   isLoadingHistory: boolean;
@@ -58,6 +63,8 @@ export interface StockPoolState {
   loadInitialHistory: () => Promise<void>;
   refreshHistory: (silent?: boolean) => Promise<void>;
   loadMoreHistory: () => Promise<void>;
+  loadStockHistory: (stockCode: string) => Promise<HistoryItem[]>;
+  clearStockHistory: () => void;
   selectHistoryItem: (recordId: number) => Promise<void>;
   toggleHistorySelection: (recordId: number) => void;
   toggleSelectAllVisible: () => void;
@@ -67,6 +74,7 @@ export interface StockPoolState {
   syncTaskCreated: (task: TaskInfo) => void;
   syncTaskUpdated: (task: TaskInfo) => void;
   syncTaskFailed: (task: TaskInfo) => void;
+  refreshActiveTasks: () => Promise<void>;
   removeTask: (taskId: string) => void;
   resetDashboardState: () => void;
 }
@@ -80,6 +88,8 @@ const initialState = {
   error: null,
   isAnalyzing: false,
   historyItems: [] as HistoryItem[],
+  stockHistoryItems: [] as HistoryItem[],
+  isLoadingStockHistory: false,
   selectedHistoryIds: [] as number[],
   isDeletingHistory: false,
   isLoadingHistory: false,
@@ -196,6 +206,32 @@ export const useStockPoolStore = create<StockPoolState>((set, get) => ({
 
   closeMarkdownDrawer: () => set({ markdownDrawerOpen: false }),
 
+  loadStockHistory: async (stockCode: string): Promise<HistoryItem[]> => {
+    set({ isLoadingStockHistory: true, stockHistoryItems: [] });
+    try {
+      const response = await historyApi.getList({
+        stockCode,
+        page: 1,
+        limit: 20,
+        startDate: getRecentStartDate(90),
+        endDate: getTodayInShanghai(),
+      });
+      // Sort by createdAt descending (newest first)
+      const items = response.items.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+      set({ stockHistoryItems: items, isLoadingStockHistory: false });
+      return items;
+    } catch (error) {
+      set({ isLoadingStockHistory: false });
+      return [];
+    }
+  },
+
+  clearStockHistory: () => {
+    set({ stockHistoryItems: [], isLoadingStockHistory: false });
+  },
+
   loadInitialHistory: async () => {
     await fetchHistory(get, set, { autoSelectFirst: true, reset: true });
   },
@@ -310,6 +346,7 @@ export const useStockPoolStore = create<StockPoolState>((set, get) => ({
     const originalQuery = (options?.originalQuery ?? state.query).trim();
     const notify = options?.notify ?? state.notify;
     const forceRefresh = options?.forceRefresh ?? false;
+    const skills = options?.skills;
 
     if (!stockCodeInput) {
       set({ inputError: '请输入股票代码', duplicateError: null });
@@ -348,6 +385,7 @@ export const useStockPoolStore = create<StockPoolState>((set, get) => ({
         selectionSource,
         notify,
         forceRefresh,
+        skills,
       });
 
       if (requestId !== analyzeRequestSeq) {
@@ -385,6 +423,7 @@ export const useStockPoolStore = create<StockPoolState>((set, get) => ({
     if (get().activeTasks.some((item) => item.taskId === task.taskId)) {
       return;
     }
+    activeTaskLocalRevision += 1;
     set({ activeTasks: [...get().activeTasks, task] });
   },
 
@@ -396,6 +435,7 @@ export const useStockPoolStore = create<StockPoolState>((set, get) => ({
     const index = nextTasks.findIndex((item) => item.taskId === task.taskId);
     if (index >= 0) {
       nextTasks[index] = task;
+      activeTaskLocalRevision += 1;
       set({ activeTasks: nextTasks });
     }
   },
@@ -405,15 +445,66 @@ export const useStockPoolStore = create<StockPoolState>((set, get) => ({
     set({ error: getParsedApiError(task.error || '分析失败') });
   },
 
+  refreshActiveTasks: async () => {
+    const requestId = ++activeTaskRequestSeq;
+    const localRevisionAtRequest = activeTaskLocalRevision;
+    try {
+      const response = await analysisApi.getTasks({
+        status: 'pending,processing',
+        limit: 100,
+      });
+      if (requestId !== activeTaskRequestSeq) {
+        return;
+      }
+
+      const remoteTasks = response.tasks.filter(
+        (task) => !dismissedTaskIds.has(task.taskId),
+      );
+      const remoteTaskIds = new Set(remoteTasks.map((task) => task.taskId));
+      const remoteTaskById = new Map(remoteTasks.map((task) => [task.taskId, task]));
+      const isCompleteSnapshot = response.tasks.length === response.pending + response.processing;
+      const canPruneLocalTasks = isCompleteSnapshot && activeTaskLocalRevision === localRevisionAtRequest;
+
+      const currentTasks = get().activeTasks;
+      const nextTasks = currentTasks
+        .filter((task) => !dismissedTaskIds.has(task.taskId))
+        .filter((task) => !canPruneLocalTasks || remoteTaskIds.has(task.taskId))
+        .map((task) => remoteTaskById.get(task.taskId) ?? task);
+
+      const localTaskIds = new Set(nextTasks.map((task) => task.taskId));
+      for (const task of remoteTasks) {
+        if (!localTaskIds.has(task.taskId)) {
+          nextTasks.push(task);
+        }
+      }
+
+      const hasActiveTaskChanges = nextTasks.length !== currentTasks.length
+        || nextTasks.some((task, index) => task !== currentTasks[index]);
+      if (hasActiveTaskChanges) {
+        activeTaskLocalRevision += 1;
+        set({ activeTasks: nextTasks });
+      }
+    } catch {
+      // Keep the current task panel when reconciliation cannot reach the API.
+    }
+  },
+
   removeTask: (taskId) => {
     dismissedTaskIds.add(taskId);
-    set({ activeTasks: get().activeTasks.filter((task) => task.taskId !== taskId) });
+    const currentTasks = get().activeTasks;
+    const nextTasks = currentTasks.filter((task) => task.taskId !== taskId);
+    if (nextTasks.length !== currentTasks.length) {
+      activeTaskLocalRevision += 1;
+    }
+    set({ activeTasks: nextTasks });
   },
 
   resetDashboardState: () => {
     historyRequestSeq += 1;
     reportRequestSeq = 0;
     analyzeRequestSeq = 0;
+    activeTaskRequestSeq += 1;
+    activeTaskLocalRevision += 1;
     dismissedTaskIds.clear();
     set({ ...initialState });
   },

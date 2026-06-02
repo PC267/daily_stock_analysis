@@ -1,0 +1,421 @@
+$ npx vitest run --reporter=verbose src/pages/__tests__/HomePage.test.tsx 2>&1
+[exit 1]
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.7 [39m[90m/vol1/1000/docker/daily_stock_analysis/apps/dsa-web[39m
+
+[90mstderr[2m | src/pages/__tests__/HomePage.test.tsx[2m > [22m[2mHomePage[2m > [22m[2mrenders the dashboard workspace and auto-loads the first report
+[22m[39m[StockIndexLoader] Failed to load stock index: TypeError: Failed to parse URL from /stocks.index.json?_t=494545
+[90m    at node:internal/deps/undici/undici:14976:13[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[39m
+    at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:22[90m)[39m
+    at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:39[90m)[39m {
+  [cause]: TypeError: Invalid URL
+  [90m    at new URL (node:internal/url:818:25)[39m
+      at new URL [90m(file:///vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mvitest[24m/dist/chunks/index.DC7d2Pf8.js:557:2[90m)[39m
+  [90m    at new Request (node:internal/deps/undici/undici:9804:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:10533:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:14974:10)[39m
+  [90m    at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)[39m
+      at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:28[90m)[39m
+      at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:45[90m)[39m
+      at [90m/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:55:5
+      at Object.react_stack_bottom_frame [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:25989:20[90m)[39m {
+    code: [32m'ERR_INVALID_URL'[39m,
+    input: [32m'/stocks.index.json?_t=494545'[39m
+  }
+}
+
+[90mstderr[2m | src/pages/__tests__/HomePage.test.tsx[2m > [22m[2mHomePage[2m > [22m[2mloads markdown only after opening the full report drawer
+[22m[39m[StockIndexLoader] Failed to load stock index: TypeError: Failed to parse URL from /stocks.index.json?_t=494545
+[90m    at node:internal/deps/undici/undici:14976:13[39m
+    at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:22[90m)[39m
+    at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:39[90m)[39m {
+  [cause]: TypeError: Invalid URL
+  [90m    at new URL (node:internal/url:818:25)[39m
+      at new URL [90m(file:///vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mvitest[24m/dist/chunks/index.DC7d2Pf8.js:557:2[90m)[39m
+  [90m    at new Request (node:internal/deps/undici/undici:9804:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:10533:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:14974:10)[39m
+  [90m    at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)[39m
+      at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:28[90m)[39m
+      at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:45[90m)[39m
+      at [90m/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:55:5
+      at Object.react_stack_bottom_frame [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:25989:20[90m)[39m {
+    code: [32m'ERR_INVALID_URL'[39m,
+    input: [32m'/stocks.index.json?_t=494545'[39m
+  }
+}
+
+ [32m✓[39m src/pages/__tests__/HomePage.test.tsx[2m > [22mHomePage[2m > [22mrenders the dashboard workspace and auto-loads the first report[33m 1943[2mms[22m[39m
+[90mstderr[2m | src/pages/__tests__/HomePage.test.tsx[2m > [22m[2mHomePage[2m > [22m[2mshows the empty report workspace when history is empty
+[22m[39m[StockIndexLoader] Failed to load stock index: TypeError: Failed to parse URL from /stocks.index.json?_t=494545
+[90m    at node:internal/deps/undici/undici:14976:13[39m
+    at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:22[90m)[39m
+    at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:39[90m)[39m {
+  [cause]: TypeError: Invalid URL
+  [90m    at new URL (node:internal/url:818:25)[39m
+      at new URL [90m(file:///vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mvitest[24m/dist/chunks/index.DC7d2Pf8.js:557:2[90m)[39m
+  [90m    at new Request (node:internal/deps/undici/undici:9804:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:10533:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:14974:10)[39m
+  [90m    at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)[39m
+      at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:28[90m)[39m
+      at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:45[90m)[39m
+      at [90m/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:55:5
+      at Object.react_stack_bottom_frame [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:25989:20[90m)[39m {
+    code: [32m'ERR_INVALID_URL'[39m,
+    input: [32m'/stocks.index.json?_t=494545'[39m
+  }
+}
+
+ [31m×[39m src/pages/__tests__/HomePage.test.tsx[2m > [22mHomePage[2m > [22mloads markdown only after opening the full report drawer[33m 2066[2mms[22m[39m
+[31m   → expected "vi.fn()" to be called with arguments: [ 1 ][90m
+
+Number of calls: [1m0[22m
+[31m
+
+Ignored nodes: comments, script, style
+[36m<html>[31m
+  [36m<head>[31m
+    [36m<title>[31m
+      [0m每日选股分析 - DSA[0m
+    [36m</title>[31m
+  [36m</head>[31m
+  [36m<body[31m
+    [33mstyle[31m=[32m"overflow: hidden;"[31m
+  [36m>[31m
+    [36m<div>[31m
+      [36m<div[31m
+        [33mclass[31m=[32m"flex h-[calc(100vh-5rem)] w-full flex-col overflow-hidden md:flex-row sm:h-[calc(100vh-5.5rem)] lg:h-[calc(100vh-2rem)]"[31m
+        [33mdata-testid[31m=[32m"home-dashboard"[31m
+      [36m>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"flex-1 flex flex-col min-h-0 min-w-0 max-w-full lg:max-w-6xl mx-auto w-full"[31m
+        [36m>[31m
+          [36m<header[31m
+            [33mclass[31m=[32m"relative z-30 flex min-w-0 flex-shrink-0 items-center overflow-visible px-3 py-3 md:px-4 md:py-4"[31m
+          [36m>[31m
+            [36m<div[31m
+              [33mclass[31m=[32m"flex min-w-0 flex-1 flex-col gap-2.5 md:flex-row md:items-center"[31m
+            [36m>[31m
+              [36m<div[31m
+                [33mclass[31m=[32m"flex min-w-0 flex-1 items-center gap-2.5"[31m
+              [36m>[31m
+                [36m<button[31m
+                  [33maria-label[31m=[32m"历史记录"[31m
+                  [33mclass[31m=[32m"md:hidden -ml-1 flex-shrink-0 rounded-lg p-1.5 text-secondary-text transition-colors hover:bg-hover hover:text-foreground"[31m
+                [36m>[31m
+                  [36m<svg[31m
+                    [33mclass[31m=[32m"h-5 w-5"[31m
+                    [33mfill[31m=[32m"none"[31m
+                    [33mstroke[31m=[32m"currentColor"[31m
+                    [33mviewBox[31m=[32m"0 0 24 24"[31m
+                  [36m>[31m
+                    [36m<path[31m
+                      [33md[31m=[32m"M4 6h16M4 12h16M4 18h16"[31m
+                      [33mstroke-linecap[31m=[32m"round"[31m
+                      [33mstroke-linejoin[31m=[32m"round"[31m
+                      [33mstroke-width[31m=[32m"2"[31m
+                    [36m/>[31m
+                  [36m</svg>[31m
+                [36m</button>[31m
+                [36m<div[31m
+                  [33mclass[31m=[32m"relative min-w-0 flex-1"[31m
+                [36m>[31m
+                  [36m<input[31m
+                    [33mclass[31m=[32m"input-surface input-focus-glow h-11 w-full rounded-xl border bg-transparent px-4 text-sm transition-all focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"[31m
+                    [33mdata-autocomplete-mode[31m=[32m"fallback"[31m
+                    [33mplaceholder[31m=[32m"输入股票代码或名称，如 600519、贵州茅台、AAPL"[31m
+                    [33mtype[31m=[32m"text"[31m
+                    [33mvalue[31m=[32m""[31m
+                  [36m/>[31m
+                [36m</div>[31m
+              [36m</div>[31m
+              [36m<div[31m
+                [33mclass[31m=[32m"flex min-w-0 flex-shrink-0 items-center gap-2.5"[31m
+              [36m>[31m
+                [36m<label[31m
+                  [33mclass[31m=[32m"flex h-10 flex-shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-subtle bg-surface/60 px-3 text-xs text-secondary-text select-none transition-colors hover:border-subtle-hover hover:text-foreground"[31m
+                [36m>[31m
+                  [36m<input[31m
+                    [33mchecked[31m=[32m""[31m
+                    [33mclass[31m=[32m"h-3.5 w-3.5 rounded border-border accent-primary"[31m
+                    [33mtype[31m=[32m"checkbox"[31m
+                  [36m/>[31m
+                  [0m推送通知[0m
+                [36m</label>[31m
+                [36m<button[31m
+                  [33mclass[31m=[32m"inline-flex cursor-pointer items-center justify-center gap-2 font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cyan/15 focus-visible:ring-offset-0 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none rounded-xl px-4 text-sm border border-border/70 bg-card text-foreground shadow-soft-card hover:bg-hover h-10 flex-1 whitespace-nowrap md:flex-none"[31m
+                  [33mdata-variant[31m=[32m"secondary"[31m
+                  [33mtype[31m=[32m"button"[31m
+                [36m>[31m
+                  [36m<svg[31m
+                    [33maria-hidden[31m=[32m"true"[31m
+                    [33mclass[31m=[32m"lucide lucide-chart-column h-4 w-4"[31m
+                    [33mfill[31m=[32m"none"[31m
+                    [33mheight[31m=[32m"24"[31m
+                    [33mstroke[31m=[32m"currentColor"[31m
+                    [33mstroke-linecap[31m=[32m"round"[31m
+                    [33mstroke-linejoin[31m=[32m"round"[31m
+                    [33mstroke-width[31m=[32m"2"[31m
+                    [33mviewBox[31m=[32m"0 0 24 24"[31m
+                    [33mwidth[31m=[32m"24"[31m
+                    [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+                  [36m>[31m
+                    [36m<path[31m
+                      [33md[31m=[32m"M3 3v16a2 2 0 0 0 2 2h16"[31m
+                    [36m/>[31m
+                    [36m<path[31m
+                      [33md[31m=[32m"M18 17V9"[31m
+                    [36m/>[31m
+                    [36m<path[31m
+                      [33md[31m=[32m"M13 17V5"[31m
+                    [36m/>[31m
+                    [36m<path[31m
+                      [33md[31m=[32m"M8 17v-3"[31m
+                    [36m/>[31m
+                  [36m</svg>[31m
+                  [0m大盘复盘[0m
+                [36m</button>[31m
+                [36m<button[31m
+                  [33mclass[31m=[32m"btn-primary flex h-10 flex-1 items-center justify-center gap-1.5 whitespace-nowrap md:flex-none"[31m
+                  [33mdisabled[31m=[32m""[31m
+                  [33mtype[31m=[32m"button"[31m
+                [36m>[31m
+                  [0m分析[0m
+                [36m</button>[31m
+              [36m</div>[31m
+            [36m</div>[31m
+          [36m</header>[31m
+          [36m<div[31m
+            [33mclass[31m=[32m"flex-1 flex min-h-0 overflow-hidden"[31m
+          [36m>[31m
+            [36m<div[31m
+              [33mclass[31m=[32m"hidden min-h-0 w-64 shrink-0 flex-col overflow-hidden pl-4 pb-4 md:flex lg:w-72"[31m
+            [36m>[31m
+              [36m<div[31m
+                [33mclass[31m=[32m"flex min-h-0 h-full flex-col gap-3 overflow-hidden"[31m
+              [36m>[31m
+                [36m<aside[31m
+                  [33mclass[31m=[32m"glass-card overflow-hidden flex flex-col flex-1 overflow-hidden"[31m
+                [36m>[31m
+                  [36m<div[31m
+                    [33mclass[31m=[32m"min-h-0 flex-1 overflow-hidden"[31m
+                  [36m>[31m
+                    [36m<div[31m
+                      [33mclass[31m=[32m"h-full overflow-y-auto cu...[39m
+[90mstderr[2m | src/pages/__tests__/HomePage.test.tsx[2m > [22m[2mHomePage[2m > [22m[2msurfaces duplicate task warnings from dashboard submission
+[22m[39m[StockIndexLoader] Failed to load stock index: TypeError: Failed to parse URL from /stocks.index.json?_t=494545
+[90m    at node:internal/deps/undici/undici:14976:13[39m
+[90m    at runNextTicks (node:internal/process/task_queues:64:5)[39m
+[90m    at processTimers (node:internal/timers:518:9)[39m
+    at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:22[90m)[39m
+    at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:39[90m)[39m {
+  [cause]: TypeError: Invalid URL
+  [90m    at new URL (node:internal/url:818:25)[39m
+      at new URL [90m(file:///vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mvitest[24m/dist/chunks/index.DC7d2Pf8.js:557:2[90m)[39m
+  [90m    at new Request (node:internal/deps/undici/undici:9804:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:10533:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:14974:10)[39m
+  [90m    at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)[39m
+      at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:28[90m)[39m
+      at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:45[90m)[39m
+      at [90m/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:55:5
+      at Object.react_stack_bottom_frame [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:25989:20[90m)[39m {
+    code: [32m'ERR_INVALID_URL'[39m,
+    input: [32m'/stocks.index.json?_t=494545'[39m
+  }
+}
+
+ [32m✓[39m src/pages/__tests__/HomePage.test.tsx[2m > [22mHomePage[2m > [22mshows the empty report workspace when history is empty[33m 527[2mms[22m[39m
+[90mstderr[2m | src/pages/__tests__/HomePage.test.tsx[2m > [22m[2mHomePage[2m > [22m[2msubmits market review from the home toolbar
+[22m[39m[StockIndexLoader] Failed to load stock index: TypeError: Failed to parse URL from /stocks.index.json?_t=494545
+[90m    at node:internal/deps/undici/undici:14976:13[39m
+    at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:22[90m)[39m
+    at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:39[90m)[39m {
+  [cause]: TypeError: Invalid URL
+  [90m    at new URL (node:internal/url:818:25)[39m
+      at new URL [90m(file:///vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mvitest[24m/dist/chunks/index.DC7d2Pf8.js:557:2[90m)[39m
+  [90m    at new Request (node:internal/deps/undici/undici:9804:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:10533:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:14974:10)[39m
+  [90m    at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)[39m
+      at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:28[90m)[39m
+      at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:45[90m)[39m
+      at [90m/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:55:5
+      at Object.react_stack_bottom_frame [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:25989:20[90m)[39m {
+    code: [32m'ERR_INVALID_URL'[39m,
+    input: [32m'/stocks.index.json?_t=494545'[39m
+  }
+}
+
+ [32m✓[39m src/pages/__tests__/HomePage.test.tsx[2m > [22mHomePage[2m > [22msurfaces duplicate task warnings from dashboard submission[32m 234[2mms[22m[39m
+[90mstderr[2m | src/pages/__tests__/HomePage.test.tsx[2m > [22m[2mHomePage[2m > [22m[2mscrolls the dashboard to market review feedback after toolbar clicks
+[22m[39m[StockIndexLoader] Failed to load stock index: TypeError: Failed to parse URL from /stocks.index.json?_t=494545
+[90m    at node:internal/deps/undici/undici:14976:13[39m
+    at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:22[90m)[39m
+    at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:39[90m)[39m {
+  [cause]: TypeError: Invalid URL
+  [90m    at new URL (node:internal/url:818:25)[39m
+      at new URL [90m(file:///vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mvitest[24m/dist/chunks/index.DC7d2Pf8.js:557:2[90m)[39m
+  [90m    at new Request (node:internal/deps/undici/undici:9804:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:10533:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:14974:10)[39m
+  [90m    at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)[39m
+      at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:28[90m)[39m
+      at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:45[90m)[39m
+      at [90m/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:55:5
+      at Object.react_stack_bottom_frame [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:25989:20[90m)[39m {
+    code: [32m'ERR_INVALID_URL'[39m,
+    input: [32m'/stocks.index.json?_t=494545'[39m
+  }
+}
+
+ [32m✓[39m src/pages/__tests__/HomePage.test.tsx[2m > [22mHomePage[2m > [22msubmits market review from the home toolbar[32m 197[2mms[22m[39m
+[90mstderr[2m | src/pages/__tests__/HomePage.test.tsx[2m > [22m[2mHomePage[2m > [22m[2mkeeps market review results in the main dashboard scroll area
+[22m[39m[StockIndexLoader] Failed to load stock index: TypeError: Failed to parse URL from /stocks.index.json?_t=494545
+[90m    at node:internal/deps/undici/undici:14976:13[39m
+    at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:22[90m)[39m
+    at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:39[90m)[39m {
+  [cause]: TypeError: Invalid URL
+  [90m    at new URL (node:internal/url:818:25)[39m
+      at new URL [90m(file:///vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mvitest[24m/dist/chunks/index.DC7d2Pf8.js:557:2[90m)[39m
+  [90m    at new Request (node:internal/deps/undici/undici:9804:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:10533:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:14974:10)[39m
+  [90m    at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)[39m
+      at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:28[90m)[39m
+      at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:45[90m)[39m
+      at [90m/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:55:5
+      at Object.react_stack_bottom_frame [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:25989:20[90m)[39m {
+    code: [32m'ERR_INVALID_URL'[39m,
+    input: [32m'/stocks.index.json?_t=494545'[39m
+  }
+}
+
+ [32m✓[39m src/pages/__tests__/HomePage.test.tsx[2m > [22mHomePage[2m > [22mscrolls the dashboard to market review feedback after toolbar clicks[33m 700[2mms[22m[39m
+[90mstderr[2m | src/pages/__tests__/HomePage.test.tsx[2m > [22m[2mHomePage[2m > [22m[2mshows first-run setup gaps and links to settings
+[22m[39m[StockIndexLoader] Failed to load stock index: TypeError: Failed to parse URL from /stocks.index.json?_t=494545
+[90m    at node:internal/deps/undici/undici:14976:13[39m
+    at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:22[90m)[39m
+    at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:39[90m)[39m {
+  [cause]: TypeError: Invalid URL
+  [90m    at new URL (node:internal/url:818:25)[39m
+      at new URL [90m(file:///vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mvitest[24m/dist/chunks/index.DC7d2Pf8.js:557:2[90m)[39m
+  [90m    at new Request (node:internal/deps/undici/undici:9804:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:10533:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:14974:10)[39m
+  [90m    at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)[39m
+      at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:28[90m)[39m
+      at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:45[90m)[39m
+      at [90m/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:55:5
+      at Object.react_stack_bottom_frame [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:25989:20[90m)[39m {
+    code: [32m'ERR_INVALID_URL'[39m,
+    input: [32m'/stocks.index.json?_t=494545'[39m
+  }
+}
+
+ [32m✓[39m src/pages/__tests__/HomePage.test.tsx[2m > [22mHomePage[2m > [22mkeeps market review results in the main dashboard scroll area[32m 196[2mms[22m[39m
+[90mstderr[2m | src/pages/__tests__/HomePage.test.tsx[2m > [22m[2mHomePage[2m > [22m[2mnavigates to chat with report context when asking a follow-up question
+[22m[39m[StockIndexLoader] Failed to load stock index: TypeError: Failed to parse URL from /stocks.index.json?_t=494545
+[90m    at node:internal/deps/undici/undici:14976:13[39m
+    at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:22[90m)[39m
+    at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:39[90m)[39m {
+  [cause]: TypeError: Invalid URL
+  [90m    at new URL (node:internal/url:818:25)[39m
+      at new URL [90m(file:///vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mvitest[24m/dist/chunks/index.DC7d2Pf8.js:557:2[90m)[39m
+  [90m    at new Request (node:internal/deps/undici/undici:9804:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:10533:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:14974:10)[39m
+  [90m    at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)[39m
+      at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:28[90m)[39m
+      at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:45[90m)[39m
+      at [90m/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:55:5
+      at Object.react_stack_bottom_frame [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:25989:20[90m)[39m {
+    code: [32m'ERR_INVALID_URL'[39m,
+    input: [32m'/stocks.index.json?_t=494545'[39m
+  }
+}
+
+ [32m✓[39m src/pages/__tests__/HomePage.test.tsx[2m > [22mHomePage[2m > [22mshows first-run setup gaps and links to settings[32m 207[2mms[22m[39m
+[90mstderr[2m | src/pages/__tests__/HomePage.test.tsx[2m > [22m[2mHomePage[2m > [22m[2mconfirms and deletes selected history from the dashboard state flow
+[22m[39m[StockIndexLoader] Failed to load stock index: TypeError: Failed to parse URL from /stocks.index.json?_t=494545
+[90m    at node:internal/deps/undici/undici:14976:13[39m
+    at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:22[90m)[39m
+    at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:39[90m)[39m {
+  [cause]: TypeError: Invalid URL
+  [90m    at new URL (node:internal/url:818:25)[39m
+      at new URL [90m(file:///vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mvitest[24m/dist/chunks/index.DC7d2Pf8.js:557:2[90m)[39m
+  [90m    at new Request (node:internal/deps/undici/undici:9804:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:10533:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:14974:10)[39m
+  [90m    at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)[39m
+      at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:28[90m)[39m
+      at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:45[90m)[39m
+      at [90m/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:55:5
+      at Object.react_stack_bottom_frame [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:25989:20[90m)[39m {
+    code: [32m'ERR_INVALID_URL'[39m,
+    input: [32m'/stocks.index.json?_t=494545'[39m
+  }
+}
+
+ [32m✓[39m src/pages/__tests__/HomePage.test.tsx[2m > [22mHomePage[2m > [22mnavigates to chat with report context when asking a follow-up question[33m 772[2mms[22m[39m
+[90mstderr[2m | src/pages/__tests__/HomePage.test.tsx[2m > [22m[2mHomePage[2m > [22m[2mopens and closes the mobile history drawer without changing dashboard styles
+[22m[39m[StockIndexLoader] Failed to load stock index: TypeError: Failed to parse URL from /stocks.index.json?_t=494545
+[90m    at node:internal/deps/undici/undici:14976:13[39m
+    at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:22[90m)[39m
+    at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:39[90m)[39m {
+  [cause]: TypeError: Invalid URL
+  [90m    at new URL (node:internal/url:818:25)[39m
+      at new URL [90m(file:///vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mvitest[24m/dist/chunks/index.DC7d2Pf8.js:557:2[90m)[39m
+  [90m    at new Request (node:internal/deps/undici/undici:9804:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:10533:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:14974:10)[39m
+  [90m    at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)[39m
+      at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:28[90m)[39m
+      at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:45[90m)[39m
+      at [90m/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:55:5
+      at Object.react_stack_bottom_frame [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:25989:20[90m)[39m {
+    code: [32m'ERR_INVALID_URL'[39m,
+    input: [32m'/stocks.index.json?_t=494545'[39m
+  }
+}
+
+ [32m✓[39m src/pages/__tests__/HomePage.test.tsx[2m > [22mHomePage[2m > [22mconfirms and deletes selected history from the dashboard state flow[33m 1011[2mms[22m[39m
+[90mstderr[2m | src/pages/__tests__/HomePage.test.tsx[2m > [22m[2mHomePage[2m > [22m[2mrenders active task panel content from dashboard state
+[22m[39m[StockIndexLoader] Failed to load stock index: TypeError: Failed to parse URL from /stocks.index.json?_t=494545
+[90m    at node:internal/deps/undici/undici:14976:13[39m
+    at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:22[90m)[39m
+    at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:39[90m)[39m {
+  [cause]: TypeError: Invalid URL
+  [90m    at new URL (node:internal/url:818:25)[39m
+      at new URL [90m(file:///vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mvitest[24m/dist/chunks/index.DC7d2Pf8.js:557:2[90m)[39m
+  [90m    at new Request (node:internal/deps/undici/undici:9804:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:10533:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:14974:10)[39m
+  [90m    at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)[39m
+      at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:28[90m)[39m
+      at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:45[90m)[39m
+      at [90m/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:55:5
+      at Object.react_stack_bottom_frame [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mreact-dom[24m/cjs/react-dom-client.development.js:25989:20[90m)[39m {
+    code: [32m'ERR_INVALID_URL'[39m,
+    input: [32m'/stocks.index.json?_t=494545'[39m
+  }
+}
+
+ [32m✓[39m src/pages/__tests__/HomePage.test.tsx[2m > [22mHomePage[2m > [22mopens and closes the mobile history drawer without changing dashboard styles[32m 155[2mms[22m[39m
+[90mstderr[2m | src/pages/__tests__/HomePage.test.tsx[2m > [22m[2mHomePage[2m > [22m[2mtriggers reanalyze for the current report even if the search input has other text
+[22m[39m[StockIndexLoader] Failed to load stock index: TypeError: Failed to parse URL from /stocks.index.json?_t=494545
+[90m    at node:internal/deps/undici/undici:14976:13[39m
+    at loadStockIndex [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/utils/stockIndexLoader.ts:29:22[90m)[39m
+    at load [90m(/vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39msrc/hooks/useStockIndex.ts:43:39[90m)[39m {
+  [cause]: TypeError: Invalid URL
+  [90m    at new URL (node:internal/url:818:25)[39m
+      at new URL [90m(file:///vol1/1000/docker/daily_stock_analysis/apps/dsa-web/[39mnode_modules/[4mvitest[24m/dist/chunks/index.DC7d2Pf8.js:557:2[90m)[39m
+  [90m    at new Request (node:internal/deps/undici/undici:9804:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:10533:25)[39m
+  [90m    at fetch (node:internal/deps/undici/undici:14974:10)[39m
+  [90m    at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)[39m
+      at loadStockIndex [90m(/vol
+
+[… truncated 16729 chars …]

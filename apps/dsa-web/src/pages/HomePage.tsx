@@ -1,15 +1,19 @@
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, Check, SlidersHorizontal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getParsedApiError, type ParsedApiError } from '../api/error';
+import { historyApi } from '../api/history';
 import { analysisApi } from '../api/analysis';
+import { agentApi, type SkillInfo } from '../api/agent';
 import { systemConfigApi } from '../api/systemConfig';
 import { ApiErrorAlert, ConfirmDialog, Button, EmptyState, InlineAlert } from '../components/common';
 import { DashboardStateBlock } from '../components/dashboard';
 import { StockAutocomplete } from '../components/StockAutocomplete';
-import { HistoryList } from '../components/history';
-import { ReportMarkdown, ReportSummary } from '../components/report';
+import type { HistoryItem } from '../types/analysis';
+import { HistoryList, HistoryTrend } from '../components/history';
+import { ReportMarkdownDrawer } from '../components/report/ReportMarkdownDrawer';
+import { ReportSummary } from '../components/report/ReportSummary';
 import { TaskPanel } from '../components/tasks';
 import { useDashboardLifecycle, useHomeDashboardState } from '../hooks';
 import type { SetupStatusResponse } from '../types/systemConfig';
@@ -25,12 +29,22 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteStockConfirm, setDeleteStockConfirm] = useState<{ code: string; name: string } | null>(null);
+  const [deleteSingleRecordConfirm, setDeleteSingleRecordConfirm] = useState<number | null>(null);
   const [isSubmittingMarketReview, setIsSubmittingMarketReview] = useState(false);
   const [marketReviewNotice, setMarketReviewNotice] = useState<MarketReviewNotice>(null);
   const [marketReviewError, setMarketReviewError] = useState<ParsedApiError | null>(null);
   const [marketReviewReport, setMarketReviewReport] = useState<string | null>(null);
   const [marketReviewReportCopied, setMarketReviewReportCopied] = useState(false);
+  const [analysisSkills, setAnalysisSkills] = useState<SkillInfo[]>([]);
+  const [selectedStrategyId, setSelectedStrategyId] = useState('');
+  const [strategyMenuOpen, setStrategyMenuOpen] = useState(false);
   const marketReviewPollTimer = useRef<number | null>(null);
+  const dashboardScrollRef = useRef<HTMLElement | null>(null);
+  const strategyMenuRef = useRef<HTMLDivElement | null>(null);
+  const strategyButtonRef = useRef<HTMLButtonElement | null>(null);
+  const strategyItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const strategyInitialFocusIndexRef = useRef<number | null>(null);
 
   const stopMarketReviewPolling = useCallback(() => {
     if (marketReviewPollTimer.current !== null) {
@@ -39,8 +53,27 @@ const HomePage: React.FC = () => {
     }
   }, []);
 
+  const scrollMarketReviewFeedbackIntoView = useCallback(() => {
+    const scrollContainer = dashboardScrollRef.current;
+    if (!scrollContainer) {
+      return;
+    }
+
+    if (typeof scrollContainer.scrollTo === 'function') {
+      scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    scrollContainer.scrollTop = 0;
+  }, []);
+
   useEffect(() => stopMarketReviewPolling, [stopMarketReviewPolling]);
   const [setupStatus, setSetupStatus] = useState<SetupStatusResponse | null>(null);
+
+  // Trend view state: right panel shows trend table for selected stock
+  const [trendStockCode, setTrendStockCode] = useState<string | null>(null);
+  const [trendStockName, setTrendStockName] = useState<string>('');
+  const [rightViewMode, setRightViewMode] = useState<'trend' | 'report'>('report');
 
   const {
     query,
@@ -49,6 +82,8 @@ const HomePage: React.FC = () => {
     error,
     isAnalyzing,
     historyItems,
+    stockHistoryItems,
+    isLoadingStockHistory,
     selectedHistoryIds,
     isDeletingHistory,
     isLoadingHistory,
@@ -63,6 +98,8 @@ const HomePage: React.FC = () => {
     loadInitialHistory,
     refreshHistory,
     loadMoreHistory,
+    loadStockHistory,
+    clearStockHistory,
     selectHistoryItem,
     toggleHistorySelection,
     toggleSelectAllVisible,
@@ -73,6 +110,7 @@ const HomePage: React.FC = () => {
     syncTaskCreated,
     syncTaskUpdated,
     syncTaskFailed,
+    refreshActiveTasks,
     removeTask,
     openMarkdownDrawer,
     closeMarkdownDrawer,
@@ -102,8 +140,154 @@ const HomePage: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    agentApi.getSkills()
+      .then((response) => {
+        if (active) {
+          setAnalysisSkills(response.skills);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setAnalysisSkills([]);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!strategyMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (target instanceof Node && strategyMenuRef.current?.contains(target)) {
+        return;
+      }
+      setStrategyMenuOpen(false);
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [strategyMenuOpen]);
+
+  useEffect(() => {
+    if (selectedStrategyId && !analysisSkills.some((skill) => skill.id === selectedStrategyId)) {
+      setSelectedStrategyId('');
+    }
+  }, [analysisSkills, selectedStrategyId]);
+
   const reportLanguage = normalizeReportLanguage(selectedReport?.meta.reportLanguage);
   const reportText = getReportText(reportLanguage);
+  const isMarketReviewHistoryReport = selectedReport?.meta.reportType === 'market_review';
+  const selectedStrategy = useMemo(
+    () => analysisSkills.find((skill) => skill.id === selectedStrategyId),
+    [analysisSkills, selectedStrategyId],
+  );
+  const selectedAnalysisSkills = useMemo(
+    () => (selectedStrategyId ? [selectedStrategyId] : undefined),
+    [selectedStrategyId],
+  );
+  const strategyOptions = useMemo(
+    () => [
+      { id: '', name: '默认策略', description: '沿用系统默认分析框架' },
+      ...analysisSkills.map((skill) => ({
+        id: skill.id,
+        name: skill.name,
+        description: skill.description,
+      })),
+    ],
+    [analysisSkills],
+  );
+  const closeStrategyMenu = useCallback((restoreFocus = false) => {
+    setStrategyMenuOpen(false);
+    if (restoreFocus) {
+      strategyButtonRef.current?.focus();
+    }
+  }, []);
+  const selectStrategy = useCallback((strategyId: string) => {
+    setSelectedStrategyId(strategyId);
+    setStrategyMenuOpen(false);
+  }, []);
+  const focusStrategyItem = useCallback((index: number) => {
+    const itemCount = strategyOptions.length;
+    if (itemCount === 0) {
+      return;
+    }
+    const nextIndex = (index + itemCount) % itemCount;
+    strategyItemRefs.current[nextIndex]?.focus();
+  }, [strategyOptions.length]);
+  const getSelectedStrategyIndex = useCallback(() => {
+    const selectedIndex = strategyOptions.findIndex((option) => option.id === selectedStrategyId);
+    return selectedIndex >= 0 ? selectedIndex : 0;
+  }, [selectedStrategyId, strategyOptions]);
+  useEffect(() => {
+    strategyItemRefs.current = strategyItemRefs.current.slice(0, strategyOptions.length);
+  }, [strategyOptions.length]);
+  useEffect(() => {
+    if (!strategyMenuOpen) {
+      return undefined;
+    }
+
+    const targetIndex = strategyInitialFocusIndexRef.current ?? getSelectedStrategyIndex();
+    strategyInitialFocusIndexRef.current = null;
+    const timeout = window.setTimeout(() => focusStrategyItem(targetIndex), 0);
+    return () => window.clearTimeout(timeout);
+  }, [focusStrategyItem, getSelectedStrategyIndex, strategyMenuOpen]);
+  const handleStrategyButtonKeyDown = useCallback((event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
+      return;
+    }
+
+    event.preventDefault();
+    const targetIndex = event.key === 'ArrowUp' ? strategyOptions.length - 1 : 0;
+    if (strategyMenuOpen) {
+      focusStrategyItem(targetIndex);
+      return;
+    }
+    strategyInitialFocusIndexRef.current = targetIndex;
+    setStrategyMenuOpen(true);
+  }, [focusStrategyItem, strategyMenuOpen, strategyOptions.length]);
+  const handleStrategyMenuKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    const itemCount = strategyOptions.length;
+    if (itemCount === 0) {
+      return;
+    }
+
+    const currentIndex = strategyItemRefs.current.findIndex((item) => item === document.activeElement);
+    switch (event.key) {
+      case 'Escape':
+        event.preventDefault();
+        closeStrategyMenu(true);
+        break;
+      case 'ArrowDown':
+        event.preventDefault();
+        focusStrategyItem(currentIndex >= 0 ? currentIndex + 1 : 0);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        focusStrategyItem(currentIndex >= 0 ? currentIndex - 1 : itemCount - 1);
+        break;
+      case 'Home':
+        event.preventDefault();
+        focusStrategyItem(0);
+        break;
+      case 'End':
+        event.preventDefault();
+        focusStrategyItem(itemCount - 1);
+        break;
+      case 'Tab':
+        setStrategyMenuOpen(false);
+        break;
+      default:
+        break;
+    }
+  }, [closeStrategyMenu, focusStrategyItem, strategyOptions.length]);
   const setupNeedsAction = setupStatus ? !setupStatus.isComplete : false;
   const setupMissingLabels = useMemo(() => {
     if (!setupStatus) {
@@ -121,6 +305,7 @@ const HomePage: React.FC = () => {
     syncTaskCreated,
     syncTaskUpdated,
     syncTaskFailed,
+    refreshActiveTasks,
     removeTask,
   });
 
@@ -128,6 +313,77 @@ const HomePage: React.FC = () => {
     void selectHistoryItem(recordId);
     setSidebarOpen(false);
   }, [selectHistoryItem]);
+
+  const handleShowTrend = useCallback((stockCode: string, stockName: string) => {
+    setTrendStockCode(stockCode);
+    setTrendStockName(stockName);
+    setRightViewMode('trend');
+    void loadStockHistory(stockCode);
+  }, [loadStockHistory]);
+
+  const handleTrendRowClick = useCallback((recordId: number) => {
+    setRightViewMode('report');
+    void selectHistoryItem(recordId);
+  }, [selectHistoryItem]);
+
+  const handleBackFromTrend = useCallback(() => {
+    setTrendStockCode(null);
+    setTrendStockName('');
+    clearStockHistory();
+    setRightViewMode('report');
+  }, [clearStockHistory]);
+
+  const handleBackToTrend = useCallback(() => {
+    setRightViewMode('trend');
+  }, []);
+
+  const handleDeleteStock = useCallback((stockCode: string, stockName: string) => {
+    setDeleteStockConfirm({ code: stockCode, name: stockName });
+  }, []);
+
+  const handleConfirmDeleteStock = useCallback(async () => {
+    if (!deleteStockConfirm) return;
+    const { code } = deleteStockConfirm;
+    setDeleteStockConfirm(null);
+
+    // Collect all record IDs for this stock
+    const idsToDelete = historyItems
+      .filter((item) => item.stockCode === code)
+      .map((item) => item.id)
+      .filter((id): id is number => id !== undefined);
+
+    if (idsToDelete.length === 0) return;
+
+    try {
+      await historyApi.deleteRecords(idsToDelete);
+      // Refresh the full list
+      await refreshHistory(true);
+    } catch (err) {
+      // error handled by store
+    }
+  }, [deleteStockConfirm, historyItems, refreshHistory]);
+
+  const handleDeleteSingleRecord = useCallback((recordId: number) => {
+    setDeleteSingleRecordConfirm(recordId);
+  }, []);
+
+  const handleConfirmDeleteSingleRecord = useCallback(async () => {
+    const recordId = deleteSingleRecordConfirm;
+    if (recordId === null) return;
+    setDeleteSingleRecordConfirm(null);
+
+    try {
+      await historyApi.deleteRecords([recordId]);
+      // Refresh both the full list and the current stock history
+      await refreshHistory(true);
+      // Reload stock history if viewing a stock trend
+      if (trendStockCode) {
+        await loadStockHistory(trendStockCode);
+      }
+    } catch (err) {
+      // error handled by store
+    }
+  }, [deleteSingleRecordConfirm, refreshHistory, trendStockCode, loadStockHistory]);
 
   const handleSubmitAnalysis = useCallback(
     (
@@ -140,13 +396,14 @@ const HomePage: React.FC = () => {
         stockName,
         originalQuery: query,
         selectionSource: selectionSource ?? 'manual',
+        skills: selectedAnalysisSkills,
       });
     },
-    [query, submitAnalysis],
+    [query, selectedAnalysisSkills, submitAnalysis],
   );
 
   const handleAskFollowUp = useCallback(() => {
-    if (selectedReport?.meta.id === undefined) {
+    if (selectedReport?.meta.id === undefined || selectedReport.meta.reportType === 'market_review') {
       return;
     }
 
@@ -157,7 +414,7 @@ const HomePage: React.FC = () => {
   }, [navigate, selectedReport]);
 
   const handleReanalyze = useCallback(() => {
-    if (!selectedReport) {
+    if (!selectedReport || selectedReport.meta.reportType === 'market_review') {
       return;
     }
 
@@ -167,8 +424,9 @@ const HomePage: React.FC = () => {
       originalQuery: selectedReport.meta.stockCode,
       selectionSource: 'manual',
       forceRefresh: true,
+      skills: selectedAnalysisSkills,
     });
-  }, [selectedReport, submitAnalysis]);
+  }, [selectedAnalysisSkills, selectedReport, submitAnalysis]);
 
   const pollMarketReviewStatus = useCallback(
     async (taskId: string) => {
@@ -187,6 +445,7 @@ const HomePage: React.FC = () => {
             title: '大盘复盘已超时',
             message: '任务长时间未返回最终结果，请在任务列表/历史中查看。',
           });
+          scrollMarketReviewFeedbackIntoView();
           return false;
         }
 
@@ -219,6 +478,7 @@ const HomePage: React.FC = () => {
               message: marketReviewText ? '大盘复盘任务已完成，结果如下：' : '大盘复盘任务已完成，结果已生成并按配置推送。',
             });
             setMarketReviewError(null);
+            scrollMarketReviewFeedbackIntoView();
             return false;
           }
 
@@ -237,6 +497,7 @@ const HomePage: React.FC = () => {
               }),
             );
             setMarketReviewNotice(null);
+            scrollMarketReviewFeedbackIntoView();
             return false;
           }
 
@@ -247,6 +508,7 @@ const HomePage: React.FC = () => {
             title: '大盘复盘状态异常',
             message: `收到未知任务状态：${status.status}`,
           });
+          scrollMarketReviewFeedbackIntoView();
           return false;
         } catch (err: unknown) {
           const parsed = getParsedApiError(err);
@@ -255,6 +517,7 @@ const HomePage: React.FC = () => {
             setMarketReviewReport(null);
             setMarketReviewError(parsed);
             setMarketReviewNotice(null);
+            scrollMarketReviewFeedbackIntoView();
             return false;
           }
           return true;
@@ -273,7 +536,7 @@ const HomePage: React.FC = () => {
         }, intervalMs);
       }
     },
-    [stopMarketReviewPolling],
+    [scrollMarketReviewFeedbackIntoView, stopMarketReviewPolling],
   );
 
   const handleTriggerMarketReview = useCallback(async () => {
@@ -281,6 +544,7 @@ const HomePage: React.FC = () => {
     setMarketReviewNotice(null);
     setMarketReviewError(null);
     setMarketReviewReport(null);
+    scrollMarketReviewFeedbackIntoView();
     try {
       const result = await analysisApi.triggerMarketReview({ sendNotification: notify });
       setMarketReviewNotice({
@@ -288,6 +552,7 @@ const HomePage: React.FC = () => {
         title: '大盘复盘已提交',
         message: result.message,
       });
+      scrollMarketReviewFeedbackIntoView();
 
       if (result.taskId) {
         await pollMarketReviewStatus(result.taskId);
@@ -295,10 +560,11 @@ const HomePage: React.FC = () => {
     } catch (err: unknown) {
       setMarketReviewError(getParsedApiError(err));
       setMarketReviewNotice(null);
+      scrollMarketReviewFeedbackIntoView();
     } finally {
       setIsSubmittingMarketReview(false);
     }
-  }, [notify, pollMarketReviewStatus]);
+  }, [notify, pollMarketReviewStatus, scrollMarketReviewFeedbackIntoView]);
 
   const handleCopyMarketReviewReport = useCallback(() => {
     if (!marketReviewReport) {
@@ -321,12 +587,27 @@ const HomePage: React.FC = () => {
     setShowDeleteConfirm(false);
   }, [deleteSelectedHistory]);
 
+  // Group history items by stock code (one row per stock)
+  const groupedHistory = useMemo(() => {
+    const map = new Map<string, { item: HistoryItem; count: number }>();
+    for (const item of historyItems) {
+      const key = item.stockCode;
+      if (map.has(key)) {
+        map.get(key)!.count += 1;
+      } else {
+        map.set(key, { item, count: 1 });
+      }
+    }
+    return Array.from(map.values());
+  }, [historyItems]);
+
   const sidebarContent = useMemo(
     () => (
       <div className="flex min-h-0 h-full flex-col gap-3 overflow-hidden">
         <TaskPanel tasks={activeTasks} />
         <HistoryList
           items={historyItems}
+          groupedItems={groupedHistory}
           isLoading={isLoadingHistory}
           isLoadingMore={isLoadingMore}
           hasMore={hasMore}
@@ -334,6 +615,8 @@ const HomePage: React.FC = () => {
           selectedIds={selectedIds}
           isDeleting={isDeletingHistory}
           onItemClick={handleHistoryItemClick}
+          onStockClick={handleShowTrend}
+          onDeleteStock={handleDeleteStock}
           onLoadMore={() => void loadMoreHistory()}
           onToggleItemSelection={toggleHistorySelection}
           onToggleSelectAll={toggleSelectAllVisible}
@@ -344,12 +627,15 @@ const HomePage: React.FC = () => {
     ),
     [
       activeTasks,
-      hasMore,
       historyItems,
+      groupedHistory,
       isDeletingHistory,
       isLoadingHistory,
       isLoadingMore,
+      hasMore,
       handleHistoryItemClick,
+      handleShowTrend,
+      handleDeleteStock,
       loadMoreHistory,
       selectedIds,
       selectedReport?.meta.id,
@@ -364,7 +650,7 @@ const HomePage: React.FC = () => {
       className="flex h-[calc(100vh-5rem)] w-full flex-col overflow-hidden md:flex-row sm:h-[calc(100vh-5.5rem)] lg:h-[calc(100vh-2rem)]"
     >
       <div className="flex-1 flex flex-col min-h-0 min-w-0 max-w-full lg:max-w-6xl mx-auto w-full">
-        <header className="flex min-w-0 flex-shrink-0 items-center overflow-hidden px-3 py-3 md:px-4 md:py-4">
+        <header className="relative z-30 flex min-w-0 flex-shrink-0 items-center overflow-visible px-3 py-3 md:px-4 md:py-4">
           <div className="flex min-w-0 flex-1 flex-col gap-2.5 md:flex-row md:items-center">
             <div className="flex min-w-0 flex-1 items-center gap-2.5">
               <button
@@ -388,6 +674,58 @@ const HomePage: React.FC = () => {
                   className={inputError ? 'border-danger/50' : undefined}
                 />
               </div>
+              {analysisSkills.length > 0 ? (
+                <div ref={strategyMenuRef} className="relative flex-shrink-0">
+                  <button
+                    ref={strategyButtonRef}
+                    id="strategy-menu-button"
+                    type="button"
+                    aria-haspopup="menu"
+                    aria-expanded={strategyMenuOpen}
+                    aria-controls={strategyMenuOpen ? 'strategy-menu' : undefined}
+                    onClick={() => setStrategyMenuOpen((open) => !open)}
+                    onKeyDown={handleStrategyButtonKeyDown}
+                    disabled={isAnalyzing}
+                    className="home-surface-button flex h-10 max-w-[8.5rem] items-center gap-1.5 rounded-xl px-3 text-xs text-foreground disabled:cursor-not-allowed disabled:opacity-60 sm:max-w-[11rem]"
+                  >
+                    <SlidersHorizontal className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                    <span className="truncate">{selectedStrategy?.name || '策略'}</span>
+                  </button>
+                  {strategyMenuOpen ? (
+                    <div
+                      id="strategy-menu"
+                      role="menu"
+                      aria-labelledby="strategy-menu-button"
+                      onKeyDown={handleStrategyMenuKeyDown}
+                      className="absolute right-0 top-11 z-[120] max-h-80 w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto rounded-xl border border-subtle bg-elevated p-1.5 text-sm text-foreground shadow-2xl"
+                    >
+                      {strategyOptions.map((option, index) => {
+                        const selected = selectedStrategyId === option.id;
+                        return (
+                          <button
+                            key={option.id || 'default'}
+                            ref={(node) => {
+                              strategyItemRefs.current[index] = node;
+                            }}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={selected}
+                            tabIndex={-1}
+                            onClick={() => selectStrategy(option.id)}
+                            className="flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-hover"
+                          >
+                            <Check className={`mt-0.5 h-4 w-4 flex-shrink-0 ${selected ? 'opacity-100' : 'opacity-0'}`} aria-hidden="true" />
+                            <span className="min-w-0">
+                              <span className="block font-medium">{option.name}</span>
+                              <span className="mt-0.5 line-clamp-2 block text-xs leading-5 text-muted-text">{option.description}</span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
             <div className="flex min-w-0 flex-shrink-0 items-center gap-2.5">
               <label className="flex h-10 flex-shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-subtle bg-surface/60 px-3 text-xs text-secondary-text select-none transition-colors hover:border-subtle-hover hover:text-foreground">
@@ -479,48 +817,6 @@ const HomePage: React.FC = () => {
           </div>
         ) : null}
 
-        {marketReviewNotice ? (
-          <div className="px-3 pb-2 md:px-4">
-            <InlineAlert
-              variant={marketReviewNotice.variant}
-              title={marketReviewNotice.title}
-              message={marketReviewNotice.message}
-              className="rounded-xl px-3 py-2 text-xs shadow-none"
-            />
-          </div>
-        ) : null}
-
-        {marketReviewError ? (
-          <div className="px-3 pb-2 md:px-4">
-            <ApiErrorAlert
-              error={marketReviewError}
-              className="mb-1"
-              onDismiss={() => setMarketReviewError(null)}
-            />
-          </div>
-        ) : null}
-
-        {marketReviewReport ? (
-          <div className="px-3 pb-2 md:px-4">
-            <div className="rounded-xl border border-subtle bg-surface/70 px-3 py-3 text-xs text-secondary-text shadow-sm">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="font-semibold text-foreground">大盘复盘报告</p>
-                <button
-                  type="button"
-                  className="home-surface-button h-7 rounded-md px-3 py-1 text-xs text-foreground"
-                  disabled={marketReviewReportCopied}
-                  onClick={() => void handleCopyMarketReviewReport()}
-                >
-                  {marketReviewReportCopied ? '已复制' : '复制'}
-                </button>
-              </div>
-              <pre className="max-h-64 overflow-x-auto overflow-y-auto whitespace-pre-wrap break-words rounded-lg bg-background px-3 py-2 leading-relaxed">
-                {marketReviewReport}
-              </pre>
-            </div>
-          </div>
-        ) : null}
-
         <div className="flex-1 flex min-h-0 overflow-hidden">
           <div className="hidden min-h-0 w-64 shrink-0 flex-col overflow-hidden pl-4 pb-4 md:flex lg:w-72">
             {sidebarContent}
@@ -538,7 +834,54 @@ const HomePage: React.FC = () => {
             </div>
           ) : null}
 
-          <section className="flex-1 min-w-0 min-h-0 overflow-x-auto overflow-y-auto px-3 pb-4 md:px-6 touch-pan-y">
+          <section
+            ref={dashboardScrollRef}
+            data-testid="home-dashboard-scroll"
+            className="flex-1 min-w-0 min-h-0 overflow-x-auto overflow-y-auto px-3 pb-4 md:px-6 touch-pan-y"
+          >
+            {marketReviewNotice ? (
+              <div className="mb-3">
+                <InlineAlert
+                  variant={marketReviewNotice.variant}
+                  title={marketReviewNotice.title}
+                  message={marketReviewNotice.message}
+                  className="rounded-xl px-3 py-2 text-xs shadow-none"
+                />
+              </div>
+            ) : null}
+
+            {marketReviewError ? (
+              <div className="mb-3">
+                <ApiErrorAlert
+                  error={marketReviewError}
+                  className="mb-1"
+                  onDismiss={() => setMarketReviewError(null)}
+                />
+              </div>
+            ) : null}
+
+            {marketReviewReport ? (
+              <div className="mb-3 rounded-xl border border-subtle bg-surface/70 px-3 py-3 text-xs text-secondary-text shadow-sm">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="font-semibold text-foreground">大盘复盘报告</p>
+                  <button
+                    type="button"
+                    className="home-surface-button h-7 rounded-md px-3 py-1 text-xs text-foreground"
+                    disabled={marketReviewReportCopied}
+                    onClick={() => void handleCopyMarketReviewReport()}
+                  >
+                    {marketReviewReportCopied ? '已复制' : '复制'}
+                  </button>
+                </div>
+                <pre
+                  data-testid="market-review-report"
+                  className="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-background px-3 py-2 leading-relaxed"
+                >
+                  {marketReviewReport}
+                </pre>
+              </div>
+            ) : null}
+
             {error ? (
               <ApiErrorAlert
                 error={error}
@@ -546,17 +889,48 @@ const HomePage: React.FC = () => {
                 onDismiss={clearError}
               />
             ) : null}
-            {isLoadingReport ? (
+
+            {/* Trend view: show stock analysis history table */}
+            {trendStockCode && !isLoadingStockHistory && rightViewMode === 'trend' && stockHistoryItems.length > 0 ? (
+              <div className="max-w-5xl pb-8">
+                <HistoryTrend
+                  items={stockHistoryItems}
+                  stockName={trendStockName}
+                  stockCode={trendStockCode}
+                  selectedId={undefined}
+                  isLoading={false}
+                  onItemClick={handleTrendRowClick}
+                  onDeleteItem={handleDeleteSingleRecord}
+                  onBack={handleBackFromTrend}
+                />
+              </div>
+            ) : null}
+
+            {/* Report view: show single analysis report */}
+            {rightViewMode === 'report' && isLoadingReport ? (
               <div className="flex h-full flex-col items-center justify-center">
                 <DashboardStateBlock title="加载报告中..." loading />
               </div>
-            ) : selectedReport ? (
+            ) : null}
+            {rightViewMode === 'report' && selectedReport ? (
               <div className="max-w-4xl space-y-4 pb-8">
                 <div className="flex flex-wrap items-center justify-end gap-2">
+                  {trendStockCode && stockHistoryItems.length > 0 ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleBackToTrend}
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+                      </svg>
+                      返回趋势
+                    </Button>
+                  ) : null}
                   <Button
                     variant="home-action-ai"
                     size="sm"
-                    disabled={isAnalyzing || selectedReport.meta.id === undefined}
+                    disabled={isAnalyzing || selectedReport.meta.id === undefined || isMarketReviewHistoryReport}
                     onClick={handleReanalyze}
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -567,7 +941,7 @@ const HomePage: React.FC = () => {
                   <Button
                     variant="home-action-ai"
                     size="sm"
-                    disabled={selectedReport.meta.id === undefined}
+                    disabled={selectedReport.meta.id === undefined || isMarketReviewHistoryReport}
                     onClick={handleAskFollowUp}
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -608,7 +982,8 @@ const HomePage: React.FC = () => {
       </div>
 
       {markdownDrawerOpen && selectedReport?.meta.id ? (
-        <ReportMarkdown
+        <ReportMarkdownDrawer
+          key={selectedReport.meta.id}
           recordId={selectedReport.meta.id}
           stockName={selectedReport.meta.stockName || ''}
           stockCode={selectedReport.meta.stockCode}
@@ -630,6 +1005,28 @@ const HomePage: React.FC = () => {
         isDanger={true}
         onConfirm={handleDeleteSelectedHistory}
         onCancel={() => setShowDeleteConfirm(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={deleteStockConfirm !== null}
+        title="删除股票分析记录"
+        message={`确认删除「${deleteStockConfirm?.name ?? ''}」的所有历史分析记录吗？删除后将不可恢复。`}
+        confirmText="确认删除"
+        cancelText="取消"
+        isDanger={true}
+        onConfirm={() => void handleConfirmDeleteStock()}
+        onCancel={() => setDeleteStockConfirm(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={deleteSingleRecordConfirm !== null}
+        title="删除分析记录"
+        message="确认删除这条历史分析记录吗？删除后将不可恢复。"
+        confirmText="确认删除"
+        cancelText="取消"
+        isDanger={true}
+        onConfirm={() => void handleConfirmDeleteSingleRecord()}
+        onCancel={() => setDeleteSingleRecordConfirm(null)}
       />
     </div>
   );

@@ -11,7 +11,7 @@ API v1 路由聚合
 
 from fastapi import APIRouter
 
-from api.v1.endpoints import analysis, auth, history, stocks, backtest, system_config, agent, usage, portfolio, alphasift
+from api.v1.endpoints import alerts, analysis, auth, history, stocks, backtest, system_config, agent, usage, portfolio, alphasift
 from api.v1.endpoints import stock_data
 
 # 创建 v1 版本主路由
@@ -75,4 +75,16 @@ router.include_router(
     alphasift.router,
     prefix="/alphasift",
     tags=["Alphasift"]
+)
+
+router.include_router(
+    stock_data.router,
+    prefix="/stock-data",
+    tags=["StockData"],
+)
+
+router.include_router(
+    alerts.router,
+    prefix="/alerts",
+    tags=["Alerts"],
 )

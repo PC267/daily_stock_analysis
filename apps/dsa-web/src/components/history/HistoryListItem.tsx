@@ -12,6 +12,7 @@ interface HistoryListItemProps {
   isDeleting: boolean;
   onToggleChecked: (recordId: number) => void;
   onClick: (recordId: number) => void;
+  onDeleteItem?: (recordId: number) => void;
 }
 
 const getOperationBadgeLabel = (advice?: string) => {
@@ -41,6 +42,7 @@ export const HistoryListItem: React.FC<HistoryListItemProps> = ({
   isDeleting,
   onToggleChecked,
   onClick,
+  onDeleteItem,
 }) => {
   const sentimentColor = item.sentimentScore !== undefined ? getSentimentColor(item.sentimentScore) : null;
   const stockName = item.stockName || item.stockCode;
@@ -57,6 +59,19 @@ export const HistoryListItem: React.FC<HistoryListItemProps> = ({
           className="h-3.5 w-3.5 cursor-pointer rounded border-subtle-hover bg-transparent accent-primary focus:ring-primary/30 disabled:opacity-50"
         />
       </div>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDeleteItem?.(item.id);
+        }}
+        className="mt-5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-secondary-text opacity-0 transition-all group-hover:opacity-60 hover:bg-danger/10 hover:text-danger hover:!opacity-100"
+        title="删除此条记录"
+      >
+        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </button>
       <button
         type="button"
         onClick={() => onClick(item.id)}
